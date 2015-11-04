@@ -57,6 +57,7 @@ namespace CarThing
             public bool AutomaticWindows { get; set; }
             public int Airbags { get; set; }
             public bool Locked { get; set; }
+            public bool ClutchIn { get; set; }
 
 
             //Things a car does
@@ -86,6 +87,7 @@ namespace CarThing
                 if (pressure.HasValue)
                 {
                     amountGas = (double)pressure;
+                    Accelerating = true;
                 }
                 else
                 {
@@ -93,6 +95,8 @@ namespace CarThing
                 }
                 return amountGas;
             }
+
+            public bool? Accelerating = null;
 
             /// <summary>
             /// Pressure on the brake pedal causes this method to return that same amount of force to the brake pads
@@ -106,6 +110,7 @@ namespace CarThing
                 if (pressure.HasValue)
                 {
                     brakePressure = (double)pressure;
+                    Accelerating = false;
                 }
                 else
                 {
@@ -157,7 +162,122 @@ namespace CarThing
                 return locked;
             }
 
+            /// <summary>
+            /// This method accepts a bool that represents the current the headlights need to shine. If the current is on, the headlights are set to true, and this method returns true. Otherwise it always returns false
+            /// </summary>
+            /// <param name="current"></param>
+            /// <returns></returns>
+            public bool headlightsOn(bool current)
+            {
+                bool lights = false;
 
+                if (current)
+                {
+                    lights = true;
+                }
+
+                return lights;
+            }
+
+            public double revPerMin(double engineStrokes)
+            {
+                return (engineStrokes);
+            }
+
+
+            public enum Gear { Neutral, First, Second, Third, Fourth, Fifth, Reverse, Overdrive };
+            public Gear transmissionGear = Gear.Neutral;
+
+
+            public void changeGears(Gear currentGear, Gear stickPosition, bool clutchIn, bool? accelerating, bool automaticTransmission)
+            {
+                //Always put the clutch in to change gears
+                if (!clutchIn)
+                {
+                    ClutchIn = true;
+                }
+
+                //If the user desires to enage the reverse gear, engage the reverse gear
+                if (stickPosition == Gear.Reverse)
+                {
+                    transmissionGear = Gear.Reverse;
+                }
+
+                //Automatic Transmission Cars
+                if (automaticTransmission)
+                {
+                    if (!accelerating.HasValue)
+                    {
+                        transmissionGear = Gear.First;
+                    }
+                    else
+                    {
+                        if ((bool)accelerating)
+                        {
+                            switch (currentGear)
+                            {
+                                //case Gear.Neutral:
+                                //    transmissionGear = Gear.First
+                                //break;
+                                case Gear.First:
+                                    transmissionGear = Gear.Second;
+                                    break;
+                                case Gear.Second:
+                                    transmissionGear = Gear.Third;
+                                    break;
+                                case Gear.Third:
+                                    transmissionGear = Gear.Fourth;
+                                    break;
+                                case Gear.Fourth:
+                                    transmissionGear = Gear.Fifth;
+                                    break;
+                                default:
+                                    //If you're accelerating, you should only choose from these options
+                                    break;
+                            }
+                        }
+                        if (!(bool)accelerating)
+                        {
+
+                            switch (currentGear)
+                            {
+                                case Gear.Neutral:
+                                    break;
+                                case Gear.First:
+                                    transmissionGear = Gear.Neutral;
+                                    break;
+                                case Gear.Second:
+                                    transmissionGear = Gear.First;
+                                    break;
+                                case Gear.Third:
+                                    transmissionGear = Gear.Second;
+                                    break;
+                                case Gear.Fourth:
+                                    transmissionGear = Gear.Third;
+                                    break;
+                                case Gear.Fifth:
+                                    transmissionGear = Gear.Fourth;
+                                    break;
+                                case Gear.Reverse:
+                                    transmissionGear = Gear.Neutral;
+                                    break;
+                                default:
+                                    //if you're breaking, you should only choose from these options
+                                    break;
+                            }
+                        }
+                    }
+
+                    ClutchIn = false;
+                }
+
+                //Manual Transmission Cars
+                if (!automaticTransmission)
+                {
+                    //Do whatever you feel like, you're a big boy now
+                }
+
+            }
 
 
 
