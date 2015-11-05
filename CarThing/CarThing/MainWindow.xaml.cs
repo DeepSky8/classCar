@@ -26,170 +26,194 @@ namespace CarThing
         }
         public class Car
         {
-            //Parts of a car
-
-            //Body
-            //Doors
-            //Seats
-            //Seatbelts
-            //Radio
-            //Trunk
-            //Engine
-            //Windows
-            //SteeringWheel
-            //GasPedal
-            //BrakePedal
-            //Mirrors
-            //Airbags
+            //Static car details
 
             public string BodyColor { get; set; }
             public string DoorType { get; set; }
             public string DoorNumber { get; set; }
-            public string SeatType { get; set; }
+            public enum SeatType { bucket, bench, economy }
+            public enum SeatFabric { fabric, leather, pleather }
+            public bool HasRadio { get; set; }
             public string RadioType { get; set; }
-            public string TrunkSize { get; set; }
+            public bool HasCdPlayer { get; set; }
+            public bool HasTapeDeck { get; set; }
+            public enum TrunkSize { small, medium, large }
             public bool AutomaticTransmission { get; set; }
-            public string EngineSize { get; set; }
-            public string EngineFuel { get; set; }
+            public double EngineSizeCCs { get; set; }
+            public enum EnergySource { gasoline, diesel, hybrid, electric, ethanol }
             public bool KeylessEntry { get; set; }
             public bool TouchScreen { get; set; }
             public bool ReverseCamera { get; set; }
             public bool AutomaticWindows { get; set; }
             public int Airbags { get; set; }
-            public bool Locked { get; set; }
+            public bool HeadlightsOn { get; set; }
+
+
+            //Mutable car details
+
+            public double? CarCurrentSpeed { get; set; }
+            public double? CarDirection { get; set; }
+            public bool? CarMovingForward { get; set; }
+            public double TireDirection = 0.0;
             public bool ClutchIn { get; set; }
+
+            //Doors Closed
+            public bool FrontLeftDoorClosed { get; set; }
+            public bool FrontRightDoorClosed { get; set; }
+            public bool BackLeftDoorClosed { get; set; }
+            public bool BackRightDoorClosed { get; set; }
+
+            //DoorsLocked
+            public bool FrontLeftDoorLocked { get; set; }
+            public bool FrontRightDoorLocked { get; set; }
+            public bool BackLeftDoorLocked { get; set; }
+            public bool BackRightDoorLocked { get; set; }
+
+            //WindowsClosed
+            public bool FrontLeftWindowClosed { get; set; }
+            public bool FrontRightWindowClosed { get; set; }
+            public bool BackLeftWindowClosed { get; set; }
+            public bool BackRightWindowClosed { get; set; }
 
 
             //Things a car does
 
-            //Accelerate
-            //Brake
-            //Turn
-            //UnlockDoors
-            //LightHeadlamps
-            //OpenTrunk
-            //RegisterSpeed
-            //ChangeGears
-            //ReportFuelLevel
-            //PlayRadio
-            //RollWindows
-            //ActivateAirbags
-
             /// <summary>
-            /// Pressure on the gas pedel causes this method to return that same amount of gas to the engine
+            /// Pressure on the gas pedel locks the doors and checks to see if the car is already moving. If not, the speed is updated to match the gas pedel pressure. If the car is moving, the speed is increased by the amount of pressure.
             /// </summary>
             /// <param name="pressure"></param>
             /// <returns></returns>
-            public double Accelerate(double? pressure)
+            public void Accelerate(double pressure)
             {
-                double amountGas;
+                LockAllDoors();
 
-                if (pressure.HasValue)
+                if (CarMovingForward.HasValue)
                 {
-                    amountGas = (double)pressure;
-                    Accelerating = true;
+                    if (CarCurrentSpeed.HasValue)
+                    {
+                        CarCurrentSpeed += pressure;
+                        CarDirection = 0.0;
+                    }
+                    else
+                    {
+                        CarCurrentSpeed = pressure;
+                    }
                 }
-                else
-                {
-                    amountGas = 0;
-                }
-                return amountGas;
             }
 
-            public bool? Accelerating = null;
+
 
             /// <summary>
-            /// Pressure on the brake pedal causes this method to return that same amount of force to the brake pads
+            /// Pressure on the brake pedal checks to see if the car has any speed. If so, the speed is decreased by the units of brake pressure. If this reduction goes below 0, the car speed is reset to null.
             /// </summary>
             /// <param name="pressure"></param>
             /// <returns></returns>
-            public double Brake(double? pressure)
+            public void Brake(double pressure)
             {
-                double brakePressure;
-
-                if (pressure.HasValue)
+                if (CarCurrentSpeed.HasValue)
                 {
-                    brakePressure = (double)pressure;
-                    Accelerating = false;
+                    CarCurrentSpeed -= pressure;
+
                 }
-                else
+                if (CarCurrentSpeed <= 0)
                 {
-                    brakePressure = 0;
+                    CarCurrentSpeed = null;
+                    CarDirection = null;
                 }
 
-                return brakePressure;
             }
 
             /// <summary>
-            /// If the steering wheel is turned, this method amplifies the angle of the turn (x4) and returns the amount the wheels should turn (positive or negative, left or right)
+            /// With wheels parallel to the car represented by 0.0, this method uses a double to represent the direction the tires are pointing.
             /// </summary>
             /// <param name="angle"></param>
             /// <returns></returns>
-            public double Turn(double? angle)
+            public void SteeringWheelTurn(double angle)
             {
-                double turnRatio;
-
-                if (angle.HasValue)
+                if (SomethingIndicatingRightTurn)
                 {
-                    turnRatio = ((double)angle * 4);
+                    TireDirection += angle;
                 }
                 else
                 {
-                    turnRatio = 0;
+                    TireDirection -= angle;
                 }
 
-                return turnRatio;
+                CarTurn(TireDirection);
+            }
+
+
+            /// <summary>
+            /// If the car has a direction (determined by being in motion), this method adjusts the direction of the car relative to the starting direction of the car.
+            /// </summary>
+            /// <param name="angle"></param>
+            /// <returns></returns>
+            public void CarTurn(double angle)
+            {
+                if (CarDirection.HasValue)
+                {
+                    CarDirection += angle;
+                }
             }
 
             /// <summary>
-            /// When the unlock signal is received, the door lock bool is set to mirror the signal being received. This state is returned by the method.
+            /// When the lock signal is false, each door is set to unlocked. All other signals set the door lock signal to true.
             /// </summary>
             /// <param name="unlockSignal"></param>
             /// <returns></returns>
-            public bool doorLock(bool unlockSignal)
+            public void doorUnlock(bool unlockSignal)
             {
-                bool locked = true;
-
                 if (unlockSignal)
                 {
-                    locked = false;
+                    UnlockAllDoors();
                 }
                 else
                 {
-                    locked = true;
+                    LockAllDoors();
                 }
-
-                return locked;
             }
 
-            /// <summary>
-            /// This method accepts a bool that represents the current the headlights need to shine. If the current is on, the headlights are set to true, and this method returns true. Otherwise it always returns false
-            /// </summary>
-            /// <param name="current"></param>
-            /// <returns></returns>
-            public bool headlightsOn(bool current)
+            public void LockAllDoors()
             {
-                bool lights = false;
+                FrontLeftDoorLocked = true;
+                FrontRightDoorLocked = true;
+                BackLeftDoorLocked = true;
+                BackRightDoorLocked = true;
+            }
 
-                if (current)
+            public void UnlockAllDoors()
+            {
+                FrontLeftDoorLocked = false;
+                FrontRightDoorLocked = false;
+                BackLeftDoorLocked = false;
+                BackRightDoorLocked = false;
+            }
+
+            //I'm not sure the best way to handle this concept. Unless this car has a light sensor, the headlights are switched on manually.
+            public void headlightsOn()
+            {
+                if (HeadlightsOn)
                 {
-                    lights = true;
+                    HeadlightsOn = false;
+                }
+                else
+                {
+                    HeadlightsOn = true;
                 }
 
-                return lights;
             }
 
-            public double revPerMin(double engineStrokes)
-            {
-                return (engineStrokes);
-            }
+
+
+
+
 
 
             public enum Gear { Neutral, First, Second, Third, Fourth, Fifth, Reverse, Overdrive };
             public Gear transmissionGear = Gear.Neutral;
 
 
-            public void changeGears(Gear currentGear, Gear stickPosition, bool clutchIn, bool? accelerating, bool automaticTransmission)
+            public void changeGears(Gear currentGear, Gear stickPosition, bool clutchIn, bool? accelerating)
             {
                 //Always put the clutch in to change gears
                 if (!clutchIn)
@@ -203,9 +227,7 @@ namespace CarThing
                     transmissionGear = Gear.Reverse;
                 }
 
-                //Automatic Transmission Cars
-                if (automaticTransmission)
-                {
+
                     if (!accelerating.HasValue)
                     {
                         transmissionGear = Gear.First;
@@ -269,13 +291,6 @@ namespace CarThing
                     }
 
                     ClutchIn = false;
-                }
-
-                //Manual Transmission Cars
-                if (!automaticTransmission)
-                {
-                    //Do whatever you feel like, you're a big boy now
-                }
 
             }
 
